@@ -28,6 +28,12 @@ local M = {}
 local NOTE_HL = "AwesomeNeovimAnnotateNote"
 local NOTE_MARKER = "^"
 
+-- Telescope draws its prompt, results, and preview windows with `winhl`
+-- remapping `Normal`/`FloatBorder` to its own Telescope*Normal/Border
+-- groups, often a visually distinct float color. Remapping back to plain
+-- `Normal` makes this picker match the regular editor background instead.
+local WINHL = "Normal:Normal,FloatBorder:Normal"
+
 local function link_note_hl()
     vim.api.nvim_set_hl(0, NOTE_HL, { link = "Comment", default = true })
 end
@@ -147,14 +153,16 @@ local function make_previewer()
                 )
             end
 
-            -- Telescope's own preview setup turns wrap off unconditionally
-            -- and recreates the buffer on every entry change, so it has to
-            -- be re-enabled here, every time. breakindent keeps a wrapped
+            -- Telescope's own preview setup turns wrap off, and points the
+            -- background at TelescopePreviewNormal, unconditionally, and
+            -- recreates the window on every entry change, so both have to
+            -- be redone here, every time. breakindent keeps a wrapped
             -- note's continuation lines aligned under its own indent.
             local winid = self.state.winid
             vim.wo[winid].wrap = true
             vim.wo[winid].linebreak = true
             vim.wo[winid].breakindent = true
+            vim.wo[winid].winhl = WINHL
         end,
     })
 end
@@ -200,6 +208,20 @@ local function attach_mappings(bufnr, map)
     return true
 end
 
+-- The preview content window's own background is handled inside
+-- define_preview above instead, since Telescope recreates that one
+-- window on every entry change and would otherwise clobber this.
+---@param picker table
+local function match_editor_background(picker)
+    vim.wo[picker.layout.prompt.winid].winhl = WINHL
+    vim.wo[picker.layout.prompt.border.winid].winhl = WINHL
+    vim.wo[picker.layout.results.winid].winhl = WINHL
+    vim.wo[picker.layout.results.border.winid].winhl = WINHL
+    if picker.layout.preview then
+        vim.wo[picker.layout.preview.border.winid].winhl = WINHL
+    end
+end
+
 ---Open the Telescope picker over annotated awesome-neovim entries.
 function M.open()
     local ok, pickers = pcall(require, "telescope.pickers")
@@ -211,7 +233,7 @@ function M.open()
         return
     end
     local conf = require("telescope.config").values
-    pickers.new({}, {
+    local picker = pickers.new({}, {
         prompt_title = "Awesome Neovim (annotated)",
         finder = make_finder(),
         sorter = conf.generic_sorter({}),
@@ -219,7 +241,9 @@ function M.open()
         attach_mappings = attach_mappings,
         sorting_strategy = "ascending",
         layout_config = { prompt_position = "top" },
-    }):find()
+    })
+    picker:find()
+    match_editor_background(picker)
 end
 
 -- Exposed for spec/picker_spec.lua only; not part of the public API.

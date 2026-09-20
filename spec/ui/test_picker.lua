@@ -198,4 +198,35 @@ T["prompt sits above the results, ordered top to bottom"] = function()
     eq(first_row < second_row, true)
 end
 
+T["picker windows match the regular editor background"] = function()
+    seed_db(tmp_db, "tried it, solid")
+
+    child.cmd("AnnotateFind")
+    sleep(300)
+
+    local winhls = child.lua_get([[
+        (function()
+            local bufnr = vim.api.nvim_get_current_buf()
+            local state = require("telescope.actions.state")
+            local layout = state.get_current_picker(bufnr).layout
+            return {
+                prompt = vim.wo[layout.prompt.winid].winhl,
+                prompt_border = vim.wo[layout.prompt.border.winid].winhl,
+                results = vim.wo[layout.results.winid].winhl,
+                results_border = vim.wo[layout.results.border.winid].winhl,
+                preview = vim.wo[layout.preview.winid].winhl,
+                preview_border = vim.wo[layout.preview.border.winid].winhl,
+            }
+        end)()
+    ]])
+
+    local want = "Normal:Normal,FloatBorder:Normal"
+    for _, key in ipairs({
+        "prompt", "prompt_border", "results", "results_border",
+        "preview", "preview_border",
+    }) do
+        eq(winhls[key]:find(want, 1, true) ~= nil, true)
+    end
+end
+
 return T
