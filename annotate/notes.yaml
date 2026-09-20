@@ -10482,8 +10482,8 @@
   present: 1
   first_seen: '2026-09-20T12:30:01+00:00'
   last_seen: '2026-09-20T12:52:48+00:00'
-  note: null
-  note_updated_at: null
+  note: So damn amazing I forked it
+  note_updated_at: '2026-09-20T18:19:52+00:00'
 - url: https://github.com/lewis6991/pckr.nvim
   section: Plugin Manager
   subsection: null

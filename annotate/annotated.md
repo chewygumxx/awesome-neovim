@@ -1094,6 +1094,7 @@
 - [alyxshang/nuwa.nvim](https://github.com/alyxshang/nuwa.nvim) - A light package manager.
 - [cosmicbuffalo/super_lazy.nvim](https://github.com/cosmicbuffalo/super_lazy.nvim) - An extension to `folke`'s `lazy.nvim`, enables use of multiple lockfiles for large teams that want to combine your shared/personal configurations.
 - [folke/lazy.nvim](https://github.com/folke/lazy.nvim) - A modern plugin manager, featuring a graphical interface, async execution, a lockfile and more.
+    - Note: So damn amazing I forked it
 - [lewis6991/pckr.nvim](https://github.com/lewis6991/pckr.nvim) - Spiritual successor of `wbthomason/packer.nvim`.
 - [lumen-oss/rocks.nvim](https://github.com/lumen-oss/rocks.nvim) - A modern approach to plugin management using LuaRocks, inspired by Cargo.
 - [nvim-mini/mini.nvim#mini.deps](https://github.com/nvim-mini/mini.nvim/blob/main/readmes/mini-deps.md) - Module of `mini.nvim` for managing other plugins. Uses Git and built-in packages to install, update, clean, and snapshot plugins.
