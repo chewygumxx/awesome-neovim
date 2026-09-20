@@ -22,9 +22,11 @@ local query = require("awesome_neovim_annotate.query")
 ---@field open fun()
 local M = {}
 
--- Highlight group for the trailing note segment of a picker row, so a note
--- reads as set apart from the awesome-neovim entry it is attached to.
+-- Highlight group for the "has a note" marker and the note text in the
+-- previewer, so a note reads as set apart from the awesome-neovim entry
+-- it is attached to.
 local NOTE_HL = "AwesomeNeovimAnnotateNote"
+local NOTE_MARKER = "^"
 
 local function link_note_hl()
     vim.api.nvim_set_hl(0, NOTE_HL, { link = "Comment", default = true })
@@ -79,11 +81,17 @@ end
 ---@param entry AwesomeNeovimAnnotate.Entry
 ---@return AwesomeNeovimAnnotate.FinderEntry
 local function entry_maker(entry)
-    local prefix = string.format("%-24s %s", entry.section, entry.name)
-    local note_preview = entry.note and (" | " .. entry.note) or ""
-    local line = prefix .. note_preview
+    local marker = entry.note and NOTE_MARKER or " "
+    local suffix = entry.description and (" - " .. entry.description) or ""
+    local line = string.format(
+        "%s %-16s %s%s",
+        marker,
+        entry.section,
+        entry.name,
+        suffix
+    )
 
-    local highlights = entry.note and { { { #prefix, #line }, NOTE_HL } }
+    local highlights = entry.note and { { { 0, #marker }, NOTE_HL } }
 
     return {
         value = entry,
@@ -107,6 +115,47 @@ local function make_finder()
     return finders.new_table({
         results = query.entries(),
         entry_maker = entry_maker,
+    })
+end
+
+---Render the currently highlighted entry, with its note, if any, on an
+---indented line of its own.
+---@return table previewer a `telescope.previewers` buffer previewer.
+local function make_previewer()
+    local previewers = require("telescope.previewers")
+    return previewers.new_buffer_previewer({
+        title = "Annotation",
+        define_preview = function(self, telescope_entry)
+            local entry = telescope_entry.value
+            local lines = {
+                entry.name,
+                entry.url,
+                "",
+                entry.description or "",
+            }
+            local note_row
+            if entry.note then
+                lines[#lines + 1] = ""
+                note_row = #lines
+                lines[#lines + 1] = "    " .. entry.note
+            end
+
+            vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
+            if note_row then
+                vim.api.nvim_buf_add_highlight(
+                    self.state.bufnr, -1, NOTE_HL, note_row, 0, -1
+                )
+            end
+
+            -- Telescope's own preview setup turns wrap off unconditionally
+            -- and recreates the buffer on every entry change, so it has to
+            -- be re-enabled here, every time. breakindent keeps a wrapped
+            -- note's continuation lines aligned under its own indent.
+            local winid = self.state.winid
+            vim.wo[winid].wrap = true
+            vim.wo[winid].linebreak = true
+            vim.wo[winid].breakindent = true
+        end,
     })
 end
 
@@ -166,6 +215,7 @@ function M.open()
         prompt_title = "Awesome Neovim (annotated)",
         finder = make_finder(),
         sorter = conf.generic_sorter({}),
+        previewer = make_previewer(),
         attach_mappings = attach_mappings,
     }):find()
 end

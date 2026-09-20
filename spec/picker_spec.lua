@@ -20,7 +20,7 @@ end
 
 describe("awesome_neovim_annotate.picker", function()
     describe("_entry_maker", function()
-        it("includes the note in display and ordinal when present", function()
+        it("shows the description and a marker when a note exists", function()
             local result = picker._entry_maker({
                 url = "https://x/1",
                 section = "AI",
@@ -33,18 +33,18 @@ describe("awesome_neovim_annotate.picker", function()
             local line, highlights = result.display()
 
             assert.equal("https://x/1", result.value.url)
+            assert.equal("^", line:sub(1, 1))
             assert.is_true(contains(line, "AI"))
             assert.is_true(contains(line, "x/1"))
-            assert.is_true(contains(line, "tried it"))
+            assert.is_true(contains(line, "does things"))
+            assert.is_false(contains(line, "tried it"))
             assert.is_true(contains(result.ordinal, "tried it"))
 
-            assert.equal(1, #highlights)
-            local range, hl_group = highlights[1][1], highlights[1][2]
-            assert.equal("tried it", line:sub(range[1] + 1, range[2]):sub(4))
-            assert.equal("AwesomeNeovimAnnotateNote", hl_group)
+            local want = { { { 0, 1 }, "AwesomeNeovimAnnotateNote" } }
+            assert.same(want, highlights)
         end)
 
-        it("omits the separator and highlight when there is no note", function()
+        it("omits the marker and highlight when there is no note", function()
             local result = picker._entry_maker({
                 url = "https://x/2",
                 section = "AI",
@@ -55,7 +55,7 @@ describe("awesome_neovim_annotate.picker", function()
             })
 
             local line, highlights = result.display()
-            assert.is_false(contains(line, "|"))
+            assert.equal(" ", line:sub(1, 1))
             assert.is_nil(highlights)
         end)
     end)

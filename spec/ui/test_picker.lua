@@ -63,6 +63,11 @@ local T = new_set({
             tmp_db = os.tmpname()
             os.remove(tmp_db)
             child.restart({ "-u", "spec/minimal_init.lua" })
+            -- Wide enough for Telescope's default layout to show a
+            -- preview pane, matching a realistic terminal rather than
+            -- the narrow default the child otherwise boots with.
+            child.o.columns = 120
+            child.o.lines = 30
             child.lua(
                 [[
                 require("awesome_neovim_annotate.query").db_path = ...
@@ -106,6 +111,66 @@ T["<C-e> opens vim.ui.input pre-filled with the existing note"] = function()
     local captured = child.lua_get("_G.captured_input")
     eq(captured.default, "tried it, solid")
     eq(captured.prompt:find("x/1", 1, true) ~= nil, true)
+end
+
+T["annotated rows show a marker; the previewer indents the note"] = function()
+    seed_db(tmp_db, "tried it, solid")
+
+    child.cmd("AnnotateFind")
+    sleep(300)
+
+    local screen = tostring(child.get_screenshot())
+    eq(screen:find("^", 1, true) ~= nil, true)
+    eq(screen:find("does things", 1, true) ~= nil, true)
+
+    local preview_text = table.concat(
+        child.lua_get([[
+            (function()
+                local bufnr = vim.api.nvim_get_current_buf()
+                local state = require("telescope.actions.state")
+                local picker = state.get_current_picker(bufnr)
+                local preview_bufnr = picker.previewer.state.bufnr
+                return vim.api.nvim_buf_get_lines(preview_bufnr, 0, -1, false)
+            end)()
+        ]]),
+        "\n"
+    )
+    eq(preview_text:find("    tried it, solid", 1, true) ~= nil, true)
+end
+
+T["previewer wraps long notes instead of truncating them"] = function()
+    local long_note = string.rep("wraps nicely ", 12)
+    seed_db(tmp_db, long_note)
+
+    child.cmd("AnnotateFind")
+    sleep(300)
+
+    local win_opts = child.lua_get([[
+        (function()
+            local bufnr = vim.api.nvim_get_current_buf()
+            local state = require("telescope.actions.state")
+            local picker = state.get_current_picker(bufnr)
+            local winid = picker.previewer.state.winid
+            local wo = vim.wo[winid]
+            return { wrap = wo.wrap, linebreak = wo.linebreak }
+        end)()
+    ]])
+    eq(win_opts.wrap, true)
+    eq(win_opts.linebreak, true)
+
+    local preview_text = table.concat(
+        child.lua_get([[
+            (function()
+                local bufnr = vim.api.nvim_get_current_buf()
+                local state = require("telescope.actions.state")
+                local picker = state.get_current_picker(bufnr)
+                local preview_bufnr = picker.previewer.state.bufnr
+                return vim.api.nvim_buf_get_lines(preview_bufnr, 0, -1, false)
+            end)()
+        ]]),
+        "\n"
+    )
+    eq(preview_text:find(long_note, 1, true) ~= nil, true)
 end
 
 return T
