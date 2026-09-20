@@ -1,0 +1,35 @@
+# vim:set expandtab shiftwidth=4 filetype=toml:
+# SPDX-License-Identifier: GPL-3.0-only
+
+#
+#
+# ~chewygumxx/awesome-neovim.git
+# ::: :/.luafmt.toml
+#
+#
+
+#
+# https://github.com/EmmyLuaLs/emmylua-analyzer-rust/blob/main/docs/emmylua_formatter/options_EN.md
+#
+
+[syntax]
+level = "Lua51"
+
+[layout]
+max_line_width = 80
+prefer_call_args_layout_from_source = true
+prefer_table_layout_from_source = true
+prefer_chain_break_on_statement_tail = true
+prefer_binary_chain_operand_per_line = true
+
+[output]
+quote_style = "Double"
+trailing_comma = "Always"
+trailing_table_separator = "Multiline"
+single_arg_call_parens = "Always"
+
+[spacing]
+space_before_lambda_func_paren = false
+
+[align]
+continuous_assign_statement = true
