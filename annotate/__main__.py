@@ -25,11 +25,13 @@ import sys
 from pathlib import Path
 
 from . import db as db_mod
+from . import git_commit
 from . import parser as parser_mod
 from . import render as render_mod
 from . import yaml_store
 
-README_PATH = Path(__file__).parent.parent / "README.md"
+REPO_ROOT = Path(__file__).resolve().parent.parent
+README_PATH = REPO_ROOT / "README.md"
 
 
 def cmd_sync(_args):
@@ -62,6 +64,9 @@ def cmd_note_set(args):
     db_mod.set_note(conn, args.url, text)
     yaml_store.export_yaml(conn)
     render_mod.write(conn)
+    entry = db_mod.get_entry(conn, args.url)
+    name = entry["name"] if entry else args.url
+    git_commit.commit_note(REPO_ROOT, name, text)
 
 
 def main():

@@ -104,6 +104,10 @@ def all_notes(conn):
     return conn.execute("SELECT * FROM notes").fetchall()
 
 
+def get_entry(conn, url):
+    return conn.execute("SELECT * FROM entries WHERE url = ?", (url,)).fetchone()
+
+
 def get_note(conn, url):
     row = conn.execute("SELECT note FROM notes WHERE url = ?", (url,)).fetchone()
     return row["note"] if row else None
