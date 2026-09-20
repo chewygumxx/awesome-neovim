@@ -15,12 +15,23 @@ local query = require("awesome_neovim_annotate.query")
 ---One entry as wrapped for a Telescope finder.
 ---@class AwesomeNeovimAnnotate.FinderEntry
 ---@field value AwesomeNeovimAnnotate.Entry
----@field display string
+---@field display fun(): string, table[]?
 ---@field ordinal string
 
 ---@class AwesomeNeovimAnnotate.Picker
 ---@field open fun()
 local M = {}
+
+-- Highlight group for the trailing note segment of a picker row, so a note
+-- reads as set apart from the awesome-neovim entry it is attached to.
+local NOTE_HL = "AwesomeNeovimAnnotateNote"
+
+local function link_note_hl()
+    vim.api.nvim_set_hl(0, NOTE_HL, { link = "Comment", default = true })
+end
+
+link_note_hl()
+vim.api.nvim_create_autocmd("ColorScheme", { callback = link_note_hl })
 
 ---@param msg string
 ---@param level? integer defaults to `vim.log.levels.ERROR`.
@@ -68,15 +79,17 @@ end
 ---@param entry AwesomeNeovimAnnotate.Entry
 ---@return AwesomeNeovimAnnotate.FinderEntry
 local function entry_maker(entry)
+    local prefix = string.format("%-24s %s", entry.section, entry.name)
     local note_preview = entry.note and (" | " .. entry.note) or ""
+    local line = prefix .. note_preview
+
+    local highlights = entry.note and { { { #prefix, #line }, NOTE_HL } }
+
     return {
         value = entry,
-        display = string.format(
-            "%-24s %s%s",
-            entry.section,
-            entry.name,
-            note_preview
-        ),
+        display = function()
+            return line, highlights
+        end,
         ordinal = table.concat({
             entry.section,
             entry.subsection or "",
