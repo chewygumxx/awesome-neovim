@@ -1,3 +1,15 @@
+> [!IMPORTANT]
+> This forked repository of [rockerBOO/awesome-neovim] exists purely for
+> tracking and my own personal annotation on the [annotation branch].
+>
+> Personal notes are viewable in [annotate/annotated.md].
+
+[rockerBOO/awesome-neovim]: https://github.com/rockerBOO/awesome-neovim
+[annotation branch]: https://github.com/chewygumxx/awesome-neovim/tree/annotation
+[annotate/annotated.md]: ./annotate/annotated.md
+
+---
+
 # Awesome Neovim [![Awesome](https://awesome.re/badge-flat.svg)](https://awesome.re)
 
 <a href="https://neovim.io/"><img src="https://neovim.io/logos/neovim-mark-flat.png" align="right" width="144"/></a>
