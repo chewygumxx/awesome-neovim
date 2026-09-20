@@ -173,4 +173,29 @@ T["previewer wraps long notes instead of truncating them"] = function()
     eq(preview_text:find(long_note, 1, true) ~= nil, true)
 end
 
+T["prompt sits above the results, ordered top to bottom"] = function()
+    vim.system({ "sqlite3", tmp_db, [[
+        CREATE TABLE entries (
+            url TEXT PRIMARY KEY, section TEXT, subsection TEXT,
+            name TEXT, description TEXT, present INTEGER
+        );
+        CREATE TABLE notes (url TEXT PRIMARY KEY, note TEXT);
+        INSERT INTO entries VALUES
+            ('https://x/1', 'AI', NULL, 'a-first', 'aaa', 1),
+            ('https://x/2', 'AI', NULL, 'b-second', 'bbb', 1);
+    ]] }, { text = true }):wait()
+
+    child.cmd("AnnotateFind")
+    sleep(300)
+
+    local screen = tostring(child.get_screenshot())
+    local prompt_row = screen:find("Awesome Neovim (annotated)", 1, true)
+    local results_row = screen:find("Results", 1, true)
+    local first_row = screen:find("a-first", 1, true)
+    local second_row = screen:find("b-second", 1, true)
+
+    eq(prompt_row < results_row, true)
+    eq(first_row < second_row, true)
+end
+
 return T

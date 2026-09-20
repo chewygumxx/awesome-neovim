@@ -217,6 +217,8 @@ function M.open()
         sorter = conf.generic_sorter({}),
         previewer = make_previewer(),
         attach_mappings = attach_mappings,
+        sorting_strategy = "ascending",
+        layout_config = { prompt_position = "top" },
     }):find()
 end
 
