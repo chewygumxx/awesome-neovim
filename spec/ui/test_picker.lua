@@ -229,4 +229,61 @@ T["picker windows match the regular editor background"] = function()
     end
 end
 
+---@param sql string extra INSERT statements over a fresh entries/notes table.
+local function seed_multi_section(sql)
+    vim.system({ "sqlite3", tmp_db, ENTRIES_TABLE .. sql }, { text = true })
+        :wait()
+end
+
+T["AnnotateSections opens entries scoped to the chosen section"] = function()
+    seed_multi_section([[
+        INSERT INTO entries VALUES
+            ('https://x/1', 'AI', NULL, 'a-plugin', 'aaa', 1),
+            ('https://x/2', 'LSP', NULL, 'b-plugin', 'bbb', 1);
+    ]])
+
+    child.cmd("AnnotateSections")
+    sleep(200)
+    eq(child.lua_get("vim.bo.filetype"), "TelescopePrompt")
+
+    child.type_keys("AI")
+    sleep(100)
+    child.type_keys("<CR>")
+    sleep(200)
+
+    local screen = tostring(child.get_screenshot())
+    eq(screen:find("Awesome Neovim - AI", 1, true) ~= nil, true)
+    eq(screen:find("a-plugin", 1, true) ~= nil, true)
+    eq(screen:find("b-plugin", 1, true) ~= nil, false)
+end
+
+T["editing a note keeps the section scope on refresh"] = function()
+    seed_multi_section([[
+        INSERT INTO entries VALUES
+            ('https://x/1', 'AI', NULL, 'a-plugin', 'aaa', 1),
+            ('https://x/2', 'LSP', NULL, 'b-plugin', 'bbb', 1);
+    ]])
+
+    child.lua([[require("awesome_neovim_annotate.picker").open("AI")]])
+    sleep(200)
+
+    child.lua([[
+        vim.ui.input = function(_, cb) cb("noted") end
+        local real_system = vim.system
+        vim.system = function(cmd, opts, on_exit)
+            if cmd[1] == "python3" and on_exit then
+                on_exit({ code = 0 })
+                return { wait = function() return { code = 0 } end }
+            end
+            return real_system(cmd, opts, on_exit)
+        end
+    ]])
+    child.type_keys("<C-e>")
+    sleep(200)
+
+    local screen = tostring(child.get_screenshot())
+    eq(screen:find("Awesome Neovim - AI", 1, true) ~= nil, true)
+    eq(screen:find("b-plugin", 1, true) ~= nil, false)
+end
+
 return T
