@@ -60,6 +60,24 @@ describe("awesome_neovim_annotate.picker", function()
         end)
     end)
 
+    describe("_unique_sections", function()
+        it("deduplicates while keeping first-seen order", function()
+            local sections = picker._unique_sections({
+                { section = "B" },
+                { section = "A" },
+                { section = "B" },
+                { section = "C" },
+                { section = "A" },
+            })
+
+            assert.same({ "B", "A", "C" }, sections)
+        end)
+
+        it("returns an empty list for no entries", function()
+            assert.same({}, picker._unique_sections({}))
+        end)
+    end)
+
     describe("_notify", function()
         it("prefixes the message and defaults to ERROR level", function()
             local captured

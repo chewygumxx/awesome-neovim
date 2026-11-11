@@ -52,10 +52,11 @@ describe("awesome_neovim_annotate", function()
     end)
 
     describe("setup", function()
-        it("registers :AnnotateFind and :AnnotateOpen", function()
+        it("registers the AnnotateFind/Sections/Open commands", function()
             mod.setup()
 
             assert.is_true(vim.fn.exists(":AnnotateFind") ~= 0)
+            assert.is_true(vim.fn.exists(":AnnotateSections") ~= 0)
             assert.is_true(vim.fn.exists(":AnnotateOpen") ~= 0)
         end)
     end)

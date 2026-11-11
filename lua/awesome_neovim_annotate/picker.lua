@@ -19,7 +19,8 @@ local query = require("awesome_neovim_annotate.query")
 ---@field ordinal string
 
 ---@class AwesomeNeovimAnnotate.Picker
----@field open fun()
+---@field open fun(section?: string)
+---@field open_sections fun()
 local M = {}
 
 -- Highlight group for the "has a note" marker and the note text in the
@@ -114,12 +115,45 @@ local function entry_maker(entry)
     }
 end
 
----Build a fresh Telescope finder over the current entries.
+---Deduplicated section names, in the order they first appear.
+---@param entries AwesomeNeovimAnnotate.Entry[]
+---@return string[]
+local function unique_sections(entries)
+    local seen = {}
+    local sections = {}
+    for _, entry in ipairs(entries) do
+        if not seen[entry.section] then
+            seen[entry.section] = true
+            sections[#sections + 1] = entry.section
+        end
+    end
+    return sections
+end
+
+---@param section string
+---@return AwesomeNeovimAnnotate.FinderEntry
+local function section_entry_maker(section)
+    return { value = section, display = section, ordinal = section }
+end
+
+---Build a fresh Telescope finder over the current entries, optionally
+---scoped to a single section.
+---@param section? string
 ---@return table finder a `telescope.finders` table finder.
-local function make_finder()
+local function make_finder(section)
     local finders = require("telescope.finders")
+    local entries = query.entries()
+    if section then
+        local filtered = {}
+        for _, entry in ipairs(entries) do
+            if entry.section == section then
+                filtered[#filtered + 1] = entry
+            end
+        end
+        entries = filtered
+    end
     return finders.new_table({
-        results = query.entries(),
+        results = entries,
         entry_maker = entry_maker,
     })
 end
@@ -189,7 +223,8 @@ local function edit_selected_note(bufnr)
     end
     local picker = action_state.get_current_picker(bufnr)
     edit_note(selection.value, function()
-        picker:refresh(make_finder(), { reset_prompt = false })
+        local finder = make_finder(picker._annotate_section)
+        picker:refresh(finder, { reset_prompt = false })
     end)
 end
 
@@ -223,7 +258,8 @@ local function match_editor_background(picker)
 end
 
 ---Open the Telescope picker over annotated awesome-neovim entries.
-function M.open()
+---@param section? string scope results to a single section.
+function M.open(section)
     local ok, pickers = pcall(require, "telescope.pickers")
     if not ok then
         notify(
@@ -233,14 +269,58 @@ function M.open()
         return
     end
     local conf = require("telescope.config").values
+    local title = section and ("Awesome Neovim - " .. section)
+        or "Awesome Neovim (annotated)"
     local picker = pickers.new({}, {
-        prompt_title = "Awesome Neovim (annotated)",
-        finder = make_finder(),
+        prompt_title = title,
+        finder = make_finder(section),
         sorter = conf.generic_sorter({}),
         previewer = make_previewer(),
         attach_mappings = attach_mappings,
         sorting_strategy = "ascending",
         layout_config = { prompt_position = "top" },
+    })
+    picker._annotate_section = section
+    picker:find()
+    match_editor_background(picker)
+end
+
+---Open a picker of section names; selecting one opens the entry picker
+---scoped to just that section, since Telescope's live fuzzy re-sort
+---makes real collapsible folds impractical over the flat entry list.
+function M.open_sections()
+    local ok, pickers = pcall(require, "telescope.pickers")
+    if not ok then
+        notify(
+            "telescope.nvim not found. Ensure nvim-telescope/telescope.nvim "
+                .. "is installed, then run :Lazy sync."
+        )
+        return
+    end
+    local finders = require("telescope.finders")
+    local actions = require("telescope.actions")
+    local action_state = require("telescope.actions.state")
+    local conf = require("telescope.config").values
+
+    local picker = pickers.new({}, {
+        prompt_title = "Awesome Neovim Sections",
+        finder = finders.new_table({
+            results = unique_sections(query.entries()),
+            entry_maker = section_entry_maker,
+        }),
+        sorter = conf.generic_sorter({}),
+        sorting_strategy = "ascending",
+        layout_config = { prompt_position = "top" },
+        attach_mappings = function(bufnr)
+            actions.select_default:replace(function()
+                local selection = action_state.get_selected_entry()
+                actions.close(bufnr)
+                if selection then
+                    M.open(selection.value)
+                end
+            end)
+            return true
+        end,
     })
     picker:find()
     match_editor_background(picker)
@@ -250,5 +330,6 @@ end
 M._notify = notify
 M._run_python = run_python
 M._entry_maker = entry_maker
+M._unique_sections = unique_sections
 
 return M
